@@ -1,0 +1,56 @@
+[
+  {
+    "timestamp": 3.9999999999999996,
+    "context_text": "Hey how's it going Good good yeah pretty busy lately",
+    "topic": "",
+    "angles": [],
+    "tier1_passed": true,
+    "tier2_passed": false,
+    "rating": null
+  },
+  {
+    "timestamp": 8.450000000000001,
+    "context_text": "Hey how's it going Good good yeah pretty busy lately Yeah same I actually just moved here last year and it's been a lot",
+    "topic": "new in town",
+    "angles": [
+      "culture shock",
+      "starting over"
+    ],
+    "tier1_passed": true,
+    "tier2_passed": true,
+    "rating": null
+  },
+  {
+    "timestamp": 15.650000000000002,
+    "context_text": "Hey how's it going Good good yeah pretty busy lately Yeah same I actually just moved here last year and it's been a lot Oh really where from Chicago originally but I was in Austin for like five years before this",
+    "topic": "",
+    "angles": [],
+    "tier1_passed": true,
+    "tier2_passed": false,
+    "rating": null
+  },
+  {
+    "timestamp": 22.700000000000003,
+    "context_text": "it's been a lot Oh really where from Chicago originally but I was in Austin for like five years before this The hardest part is just not knowing anyone you know like starting completely over",
+    "topic": "relocating",
+    "angles": [
+      "loneliness",
+      "Austin roots"
+    ],
+    "tier1_passed": true,
+    "tier2_passed": true,
+    "rating": null
+  },
+  {
+    "timestamp": 31.25,
+    "context_text": "The hardest part is just not knowing anyone you know like starting completely over I bet Yeah and work has been crazy too so it's like I don't even have time to explore",
+    "topic": "new city overwhelm",
+    "angles": [
+      "workload",
+      "wanderlust"
+    ],
+    "tier1_passed": true,
+    "tier2_passed": true,
+    "rating": null
+  }
+]
