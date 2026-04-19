@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>WhisperFlow needs microphone access to listen to conversations and provide real-time conversational angles.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>WhisperFlow uses on-device speech recognition to transcribe conversations in real time.</string>
+</dict>
+</plist>

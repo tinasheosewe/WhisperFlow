@@ -1,0 +1,22 @@
+name: WhisperFlow
+options:
+  bundleIdPrefix: com.whisperflow
+  deploymentTarget:
+    iOS: "17.0"
+
+targets:
+  WhisperFlow:
+    type: application
+    platform: iOS
+    sources:
+      - WhisperFlow
+    settings:
+      base:
+        INFOPLIST_FILE: WhisperFlow/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.whisperflow.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_STRICT_CONCURRENCY: targeted
+        CODE_SIGN_STYLE: Automatic
