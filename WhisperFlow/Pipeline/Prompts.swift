@@ -3,7 +3,7 @@ import Foundation
 enum Prompts {
     static let version = "1.4"
 
-    static let tier2GateSystem = """
+    static let emissionGateSystem = """
         You are a silent observer of a casual conversation.
         Decide if THIS moment is right to offer a subtle conversational angle to the listener.
 
@@ -22,7 +22,7 @@ enum Prompts {
         - The context is nearly identical to a moment you already said YES to
         """
 
-    static let tier2GateUser = """
+    static let emissionGateUser = """
         Recent conversation:
         ---
         {context}
@@ -61,7 +61,7 @@ enum Prompts {
         """
 
     static func formatGateUser(context: String) -> String {
-        tier2GateUser.replacingOccurrences(of: "{context}", with: context)
+        emissionGateUser.replacingOccurrences(of: "{context}", with: context)
     }
 
     static func formatAngleUser(context: String) -> String {

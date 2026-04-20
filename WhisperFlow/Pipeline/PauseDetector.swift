@@ -1,6 +1,6 @@
 import Foundation
 
-struct Tier1Trigger: Sendable {
+struct PauseDetector: Sendable {
     struct Config: Sendable, Equatable {
         var minPause: TimeInterval
         var minUserSilent: TimeInterval

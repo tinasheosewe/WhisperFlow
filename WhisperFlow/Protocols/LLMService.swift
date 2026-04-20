@@ -6,7 +6,7 @@ struct AngleResult: Sendable, Equatable {
     let angles: [String]
 }
 
-/// Abstraction for the LLM backend powering the Tier 2 gate and angle generation.
+/// Abstraction for the LLM backend powering the emission gate and angle generation.
 /// Conformers: `AnthropicLLMService`, mock implementations for testing.
 protocol LLMService: Sendable {
     func evaluateGate(context: String) async throws -> Bool

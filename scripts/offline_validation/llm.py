@@ -1,4 +1,4 @@
-"""LLM clients for Tier 2 gate and angle generation.
+"""LLM clients for emission gate and angle generation.
 
 Uses Anthropic API (Claude Haiku 4 for gate, Claude Sonnet 4.5 for angles)."""
 
@@ -17,8 +17,8 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 from prompts import (
     ANGLE_GENERATOR_SYSTEM,
     ANGLE_GENERATOR_USER,
-    TIER2_GATE_SYSTEM,
-    TIER2_GATE_USER,
+    EMISSION_GATE_SYSTEM,
+    EMISSION_GATE_USER,
 )
 
 
@@ -32,7 +32,7 @@ def _get_client() -> Anthropic:
     return Anthropic(api_key=api_key)
 
 
-def tier2_gate(context: str) -> bool:
+def emission_gate(context: str) -> bool:
     """Ask Haiku whether this is a good moment to emit.
 
     Returns True if YES, False otherwise.
@@ -41,9 +41,9 @@ def tier2_gate(context: str) -> bool:
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=4,
-        system=TIER2_GATE_SYSTEM,
+        system=EMISSION_GATE_SYSTEM,
         messages=[
-            {"role": "user", "content": TIER2_GATE_USER.format(context=context)},
+            {"role": "user", "content": EMISSION_GATE_USER.format(context=context)},
         ],
     )
     answer = resp.content[0].text.strip().upper()

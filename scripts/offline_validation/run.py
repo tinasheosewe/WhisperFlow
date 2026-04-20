@@ -28,9 +28,9 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from llm import generate_angles, tier2_gate
+from llm import generate_angles, emission_gate
 from models import ContextRing, Emission, Speaker, Word
-from triggers import Tier1Trigger
+from triggers import PauseDetector
 
 console = Console()
 
@@ -76,14 +76,14 @@ def _build_check_times(words: list[Word], tick_interval: float = 0.3) -> list[fl
 
 def run_pipeline(words: list[Word]) -> list[Emission]:
     ctx = ContextRing(window_seconds=20.0)
-    trigger = Tier1Trigger()
+    trigger = PauseDetector()
     emissions: list[Emission] = []
     last_emission_time: float | None = None
     recent_angles: list[str] = []
 
     check_times = _build_check_times(words)
     word_idx = 0
-    last_tier1_fire: float | None = None  # suppress repeated fires in same gap
+    last_pause_fire: float | None = None  # suppress repeated fires in same gap
 
     for check_t in check_times:
         # Ingest any words that have completed by this time
@@ -91,43 +91,43 @@ def run_pipeline(words: list[Word]) -> list[Emission]:
             ctx.add(words[word_idx])
             word_idx += 1
 
-        # Check Tier 1
+        # Check pause detector
         if not trigger.should_fire(ctx, check_t, last_emission_time):
-            last_tier1_fire = None  # new words arrived, reset
+            last_pause_fire = None  # new words arrived, reset
             continue
 
-        # Suppress repeated Tier 1 fires in the same silence gap
-        if last_tier1_fire is not None and check_t - last_tier1_fire < 3.0:
+        # Suppress repeated pause fires in the same silence gap
+        if last_pause_fire is not None and check_t - last_pause_fire < 3.0:
             continue
-        last_tier1_fire = check_t
+        last_pause_fire = check_t
 
         context_text = ctx.text(last_n_seconds=15.0)
         if not context_text.strip():
             continue
 
-        console.print(f"\n[dim]t={check_t:.1f}s — Tier 1 fired[/dim]")
+        console.print(f"\n[dim]t={check_t:.1f}s — Pause detected[/dim]")
         console.print(f"  [dim]Context: {context_text[:100]}...[/dim]")
 
-        # Tier 2: LLM gate
+        # Emission gate: LLM decides whether to whisper
         try:
-            passed = tier2_gate(context_text)
+            passed = emission_gate(context_text)
         except Exception as e:
-            console.print(f"  [red]Tier 2 error: {e}[/red]")
+            console.print(f"  [red]Emission gate error: {e}[/red]")
             continue
 
         if not passed:
-            console.print(f"  [yellow]Tier 2: NO — skipping[/yellow]")
+            console.print(f"  [yellow]Emission gate: NO — skipping[/yellow]")
             emissions.append(Emission(
                 timestamp=check_t,
                 context_text=context_text,
                 topic="",
                 angles=[],
-                tier1_passed=True,
-                tier2_passed=False,
+                pause_detected=True,
+                gate_passed=False,
             ))
             continue
 
-        console.print(f"  [green]Tier 2: YES[/green]")
+        console.print(f"  [green]Emission gate: YES[/green]")
 
         # Generate angles
         try:
@@ -149,8 +149,8 @@ def run_pipeline(words: list[Word]) -> list[Emission]:
             context_text=context_text,
             topic=topic,
             angles=angles,
-            tier1_passed=True,
-            tier2_passed=True,
+            pause_detected=True,
+            gate_passed=True,
         )
         emissions.append(emission)
         last_emission_time = check_t
@@ -160,10 +160,10 @@ def run_pipeline(words: list[Word]) -> list[Emission]:
 
 
 def interactive_rating(emissions: list[Emission]) -> None:
-    """Prompt user to rate each emission that passed both tiers."""
-    passed = [e for e in emissions if e.tier2_passed]
+    """Prompt user to rate each emission that passed the gate."""
+    passed = [e for e in emissions if e.gate_passed]
     if not passed:
-        console.print("\n[yellow]No emissions passed Tier 2 — nothing to rate.[/yellow]")
+        console.print("\n[yellow]No emissions passed the gate — nothing to rate.[/yellow]")
         return
 
     console.print(f"\n[bold]Rate {len(passed)} emissions (1-5):[/bold]")
@@ -188,17 +188,17 @@ def interactive_rating(emissions: list[Emission]) -> None:
 
 
 def print_summary(emissions: list[Emission]) -> None:
-    tier1_count = len(emissions)
-    tier2_count = sum(1 for e in emissions if e.tier2_passed)
+    pause_count = len(emissions)
+    gate_count = sum(1 for e in emissions if e.gate_passed)
     rated = [e for e in emissions if e.rating is not None]
 
     table = Table(title="Pipeline Summary")
     table.add_column("Metric", style="bold")
     table.add_column("Value")
 
-    table.add_row("Tier 1 candidates", str(tier1_count))
-    table.add_row("Tier 2 passed", str(tier2_count))
-    table.add_row("Tier 2 rejection rate", f"{(1 - tier2_count / tier1_count) * 100:.0f}%" if tier1_count else "N/A")
+    table.add_row("Pause detections", str(pause_count))
+    table.add_row("Gate passed", str(gate_count))
+    table.add_row("Gate rejection rate", f"{(1 - gate_count / pause_count) * 100:.0f}%" if pause_count else "N/A")
 
     if rated:
         avg = sum(e.rating for e in rated) / len(rated)
@@ -225,8 +225,8 @@ def save_results(emissions: list[Emission], path: Path) -> None:
             "context_text": e.context_text,
             "topic": e.topic,
             "angles": e.angles,
-            "tier1_passed": e.tier1_passed,
-            "tier2_passed": e.tier2_passed,
+            "pause_detected": e.pause_detected,
+            "gate_passed": e.gate_passed,
             "rating": e.rating,
         })
     with open(path, "w") as f:

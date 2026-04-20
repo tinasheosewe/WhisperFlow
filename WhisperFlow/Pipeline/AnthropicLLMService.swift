@@ -26,7 +26,7 @@ actor AnthropicLLMService: LLMService {
     func evaluateGate(context: String) async throws -> Bool {
         let response = try await callAPI(
             model: gateModel,
-            system: Prompts.tier2GateSystem,
+            system: Prompts.emissionGateSystem,
             user: Prompts.formatGateUser(context: context),
             maxTokens: 3
         )

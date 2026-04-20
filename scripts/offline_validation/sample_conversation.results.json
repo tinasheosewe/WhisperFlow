@@ -4,8 +4,8 @@
     "context_text": "Hey how's it going Good good yeah pretty busy lately",
     "topic": "",
     "angles": [],
-    "tier1_passed": true,
-    "tier2_passed": false,
+    "pause_detected": true,
+    "gate_passed": false,
     "rating": null
   },
   {
@@ -16,8 +16,8 @@
       "culture shock",
       "starting over"
     ],
-    "tier1_passed": true,
-    "tier2_passed": true,
+    "pause_detected": true,
+    "gate_passed": true,
     "rating": null
   },
   {
@@ -25,8 +25,8 @@
     "context_text": "Hey how's it going Good good yeah pretty busy lately Yeah same I actually just moved here last year and it's been a lot Oh really where from Chicago originally but I was in Austin for like five years before this",
     "topic": "",
     "angles": [],
-    "tier1_passed": true,
-    "tier2_passed": false,
+    "pause_detected": true,
+    "gate_passed": false,
     "rating": null
   },
   {
@@ -37,8 +37,8 @@
       "loneliness",
       "Austin roots"
     ],
-    "tier1_passed": true,
-    "tier2_passed": true,
+    "pause_detected": true,
+    "gate_passed": true,
     "rating": null
   },
   {
@@ -49,8 +49,8 @@
       "workload",
       "wanderlust"
     ],
-    "tier1_passed": true,
-    "tier2_passed": true,
+    "pause_detected": true,
+    "gate_passed": true,
     "rating": null
   }
 ]

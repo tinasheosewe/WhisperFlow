@@ -1,7 +1,7 @@
 @testable import WhisperFlow
 import XCTest
 
-/// Integration tests for PipelineOrchestrator — verifies the Tier1 → Tier2 → Emission
+/// Integration tests for PipelineOrchestrator — verifies the PauseDetector → EmissionGate → Emission
 /// pipeline with mock LLM. Tests behavior, not implementation details.
 final class PipelineOrchestratorTests: XCTestCase {
 
@@ -67,7 +67,7 @@ final class PipelineOrchestratorTests: XCTestCase {
         XCTAssertNil(emission)
 
         let gateCount = await llm.gateCallCount
-        XCTAssertEqual(gateCount, 0, "LLM should not be called when Tier 1 doesn't fire")
+        XCTAssertEqual(gateCount, 0, "LLM should not be called when pause detector doesn't fire")
     }
 
     // MARK: - Cooldown & Multiple Emissions

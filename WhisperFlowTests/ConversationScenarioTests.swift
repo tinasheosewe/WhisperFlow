@@ -54,7 +54,7 @@ final class ConversationScenarioTests: XCTestCase {
         ]))
         if let e = try await orchestrator.tick(at: 31.2) { emissions.append(e) }
 
-        // Verify: gate called at every tier1 fire point
+        // Verify: gate called at every pause detection point
         let gateCount = await llm.gateCallCount
         XCTAssertEqual(gateCount, 5, "Gate should evaluate at every pause point")
 

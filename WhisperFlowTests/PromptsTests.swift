@@ -20,7 +20,7 @@ final class PromptsTests: XCTestCase {
     }
 
     func testGatePromptContainsDecisionGuidance() {
-        let system = Prompts.tier2GateSystem
+        let system = Prompts.emissionGateSystem
         XCTAssertTrue(system.contains("YES"))
         XCTAssertTrue(system.contains("NO"))
     }

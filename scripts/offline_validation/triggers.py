@@ -1,4 +1,4 @@
-"""Tier 1 trigger — pure rule-based gate.
+"""Pause detector — pure rule-based gate.
 
 Runs on every word event. Returns True if this moment is a candidate
 for angle emission. Cheap, no network calls."""
@@ -8,7 +8,7 @@ from __future__ import annotations
 from models import ContextRing, Speaker
 
 
-class Tier1Trigger:
+class PauseDetector:
     def __init__(
         self,
         pause_threshold: float = 0.5,       # other speaker silent >= 500ms

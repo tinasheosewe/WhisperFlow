@@ -1,27 +1,27 @@
 @testable import WhisperFlow
 import XCTest
 
-final class Tier1TriggerTests: XCTestCase {
+final class PauseDetectorTests: XCTestCase {
 
     func testDoesNotFireWithoutWords() {
-        let trigger = Tier1Trigger()
+        let trigger = PauseDetector()
         XCTAssertFalse(trigger.shouldFire(now: 5.0, lastWordTime: nil, wordCount: 0))
     }
 
     func testDoesNotFireDuringShortPause() {
-        let trigger = Tier1Trigger()
+        let trigger = PauseDetector()
         // 0.5s pause — needs >= 0.8s (minUserSilent)
         XCTAssertFalse(trigger.shouldFire(now: 5.0, lastWordTime: 4.5, wordCount: 5))
     }
 
     func testFiresAfterSufficientPauseAndWords() {
-        let trigger = Tier1Trigger()
+        let trigger = PauseDetector()
         // 1.0s pause, 5 new words (>= 4), no cooldown history
         XCTAssertTrue(trigger.shouldFire(now: 5.0, lastWordTime: 4.0, wordCount: 5))
     }
 
     func testCooldownPreventsRapidFiring() {
-        var trigger = Tier1Trigger()
+        var trigger = PauseDetector()
         XCTAssertTrue(trigger.shouldFire(now: 5.0, lastWordTime: 4.0, wordCount: 5))
         trigger.markFired(at: 5.0, wordCount: 5)
 
@@ -30,7 +30,7 @@ final class Tier1TriggerTests: XCTestCase {
     }
 
     func testFiresAgainAfterCooldown() {
-        var trigger = Tier1Trigger()
+        var trigger = PauseDetector()
         XCTAssertTrue(trigger.shouldFire(now: 5.0, lastWordTime: 4.0, wordCount: 5))
         trigger.markFired(at: 5.0, wordCount: 5)
 
@@ -39,7 +39,7 @@ final class Tier1TriggerTests: XCTestCase {
     }
 
     func testRequiresMinimumNewWords() {
-        var trigger = Tier1Trigger()
+        var trigger = PauseDetector()
         trigger.markFired(at: 2.0, wordCount: 5)
 
         // Enough time, long pause, but only 2 new words (< 4)
@@ -47,7 +47,7 @@ final class Tier1TriggerTests: XCTestCase {
     }
 
     func testCustomConfig() {
-        let trigger = Tier1Trigger(config: .init(
+        let trigger = PauseDetector(config: .init(
             minPause: 1.0,
             minUserSilent: 2.0,
             cooldown: 5.0,
@@ -61,7 +61,7 @@ final class Tier1TriggerTests: XCTestCase {
     }
 
     func testReset() {
-        var trigger = Tier1Trigger()
+        var trigger = PauseDetector()
         trigger.markFired(at: 5.0, wordCount: 10)
         trigger.reset()
 
@@ -70,7 +70,7 @@ final class Tier1TriggerTests: XCTestCase {
     }
 
     func testDefaultConfig() {
-        let config = Tier1Trigger.Config.default
+        let config = PauseDetector.Config.default
         XCTAssertEqual(config.minPause, 0.5)
         XCTAssertEqual(config.minUserSilent, 0.8)
         XCTAssertEqual(config.cooldown, 3.0)
@@ -78,7 +78,7 @@ final class Tier1TriggerTests: XCTestCase {
     }
 
     func testExactBoundaryMinPause() {
-        let trigger = Tier1Trigger(config: .init(
+        let trigger = PauseDetector(config: .init(
             minPause: 0.5,
             minUserSilent: 0.5,
             cooldown: 0,

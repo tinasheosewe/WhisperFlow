@@ -27,8 +27,8 @@ class Emission:
     context_text: str  # the ~15s of transcript that triggered it
     topic: str
     angles: list[str]
-    tier1_passed: bool = True
-    tier2_passed: bool = False
+    pause_detected: bool = True
+    gate_passed: bool = False
     rating: int | None = None  # 1-5 manual rating
 
 

@@ -4,7 +4,7 @@ The prompt IS the product. Version and iterate aggressively."""
 
 PROMPT_VERSION = "1.4"
 
-TIER2_GATE_SYSTEM = """\
+EMISSION_GATE_SYSTEM = """\
 You are a silent observer of a casual conversation.
 Decide if THIS moment is right to offer a subtle conversational angle to the listener.
 
@@ -22,7 +22,7 @@ Say NO when:
 - The speaker is mid-thought and will continue
 - The context is nearly identical to a moment you already said YES to"""
 
-TIER2_GATE_USER = """\
+EMISSION_GATE_USER = """\
 Recent conversation:
 {context}
 
