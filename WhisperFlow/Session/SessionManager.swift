@@ -6,67 +6,84 @@ import Speech
 @Observable
 @MainActor
 final class SessionManager {
+    // MARK: - Observable State
+
     private(set) var isActive = false
-    private(set) var contextRing = ContextRing()
     private(set) var latestEmission: Emission?
     private(set) var emissions: [Emission] = []
     private(set) var statusMessage = "Ready"
     private(set) var transcriptPreview = ""
 
-    private var tier1Trigger = Tier1Trigger()
-    private var pipeline: AudioSpeechPipeline?
-    private var anthropicService: AnthropicService?
+    // MARK: - Dependencies
+
+    private let makeSpeechRecognizer: () -> any SpeechRecognizer
+    private let makeLLMService: (String) -> any LLMService
+    private let apiKeyProvider: () -> String
+    private let authorizeSpeech: () async -> Bool
+    private let authorizeMicrophone: () async -> Bool
+
+    // MARK: - Internal State
+
+    private var orchestrator: PipelineOrchestrator?
+    private var speechRecognizer: (any SpeechRecognizer)?
     private var checkTimer: Task<Void, Never>?
     private var sessionStartTime: Date?
-    private var isProcessingTier2 = false
 
-    var apiKey: String {
-        UserDefaults.standard.string(forKey: "anthropicAPIKey") ?? ""
+    init(
+        makeSpeechRecognizer: @escaping () -> any SpeechRecognizer = { AppleSpeechRecognizer() },
+        makeLLMService: @escaping (String) -> any LLMService = { AnthropicLLMService(apiKey: $0) },
+        apiKeyProvider: @escaping () -> String = { UserDefaults.standard.string(forKey: "anthropicAPIKey") ?? "" },
+        authorizeSpeech: @escaping () async -> Bool = {
+            await AppleSpeechRecognizer.requestAuthorization() == .authorized
+        },
+        authorizeMicrophone: @escaping () async -> Bool = {
+            await AVAudioApplication.requestRecordPermission()
+        }
+    ) {
+        self.makeSpeechRecognizer = makeSpeechRecognizer
+        self.makeLLMService = makeLLMService
+        self.apiKeyProvider = apiKeyProvider
+        self.authorizeSpeech = authorizeSpeech
+        self.authorizeMicrophone = authorizeMicrophone
     }
 
     // MARK: - Session Lifecycle
 
     func start() async {
         guard !isActive else { return }
+
+        let apiKey = apiKeyProvider()
         guard !apiKey.isEmpty else {
             statusMessage = "Set API key in Settings"
             return
         }
 
-        // Request speech recognition permission
-        let speechStatus = await AudioSpeechPipeline.requestAuthorization()
-        guard speechStatus == .authorized else {
+        guard await authorizeSpeech() else {
             statusMessage = "Speech recognition not authorized"
             return
         }
 
-        // Request microphone permission
-        let micAuthorized = await AVAudioApplication.requestRecordPermission()
-        guard micAuthorized else {
+        guard await authorizeMicrophone() else {
             statusMessage = "Microphone not authorized"
             return
         }
 
-        // Initialize components
-        anthropicService = AnthropicService(apiKey: apiKey)
-        contextRing = ContextRing()
-        tier1Trigger = Tier1Trigger()
+        let llmService = makeLLMService(apiKey)
+        orchestrator = PipelineOrchestrator(llmService: llmService)
         emissions = []
         latestEmission = nil
         transcriptPreview = ""
         sessionStartTime = Date()
-        isProcessingTier2 = false
 
-        // Wire up audio → speech → words
-        pipeline = AudioSpeechPipeline()
-        pipeline?.onNewWords = { [weak self] words in
-            Task { @MainActor in
-                self?.handleNewWords(words)
-            }
-        }
+        let recognizer = makeSpeechRecognizer()
+        speechRecognizer = recognizer
 
         do {
-            try pipeline?.start()
+            try recognizer.start { [weak self] words in
+                Task { @MainActor in
+                    await self?.handleNewWords(words)
+                }
+            }
         } catch {
             statusMessage = "Failed to start: \(error.localizedDescription)"
             return
@@ -74,99 +91,56 @@ final class SessionManager {
 
         isActive = true
         statusMessage = "Listening…"
-        startTier1Timer()
+        startCheckTimer()
     }
 
     func stop() {
         isActive = false
         checkTimer?.cancel()
         checkTimer = nil
-        pipeline?.stop()
-        pipeline = nil
-        anthropicService = nil
+        speechRecognizer?.stop()
+        speechRecognizer = nil
+        orchestrator = nil
         sessionStartTime = nil
-        isProcessingTier2 = false
         statusMessage = "Session ended · \(emissions.count) angles whispered"
     }
 
-    // MARK: - Word Handling
+    // MARK: - Private
 
-    private func handleNewWords(_ words: [Word]) {
-        for word in words {
-            contextRing.add(word)
-        }
-        // Show last ~80 chars of transcript
-        let full = contextRing.text
-        if full.count > 80 {
-            transcriptPreview = "…" + String(full.suffix(80))
+    private func handleNewWords(_ words: [Word]) async {
+        guard let orchestrator else { return }
+        let text = await orchestrator.addWords(words)
+        if text.count > 80 {
+            transcriptPreview = "…" + String(text.suffix(80))
         } else {
-            transcriptPreview = full
+            transcriptPreview = text
         }
     }
 
-    // MARK: - Tier 1 Timer
-
-    private func startTier1Timer() {
+    private func startCheckTimer() {
         checkTimer = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(300))
                 guard !Task.isCancelled else { break }
-                await self?.checkTier1()
+                await self?.onTick()
             }
         }
     }
 
-    private func checkTier1() async {
-        guard isActive, !isProcessingTier2, let sessionStart = sessionStartTime else { return }
-
+    private func onTick() async {
+        guard isActive, let orchestrator, let sessionStart = sessionStartTime else { return }
         let now = Date().timeIntervalSince(sessionStart)
 
-        if tier1Trigger.shouldFire(
-            now: now,
-            lastWordTime: contextRing.lastWordTime,
-            wordCount: contextRing.wordCount
-        ) {
-            tier1Trigger.markFired(at: now, wordCount: contextRing.wordCount)
-            await runTier2(at: now)
-        }
-    }
-
-    // MARK: - Tier 2 Gate + Angle Generation
-
-    private func runTier2(at timestamp: TimeInterval) async {
-        guard let service = anthropicService else { return }
-
-        let context = contextRing.text
-        guard !context.isEmpty else { return }
-
-        isProcessingTier2 = true
-        statusMessage = "Evaluating…"
-
         do {
-            let shouldProceed = try await service.tier2Gate(context: context)
-            guard shouldProceed else {
-                statusMessage = "Listening…"
-                isProcessingTier2 = false
-                return
+            if let emission = try await orchestrator.tick(at: now) {
+                emissions.append(emission)
+                latestEmission = emission
             }
-
-            statusMessage = "Generating angles…"
-            let result = try await service.generateAngles(context: context)
-
-            let emission = Emission(
-                timestamp: timestamp,
-                context: context,
-                topic: result.topic,
-                angles: result.angles
-            )
-
-            emissions.append(emission)
-            latestEmission = emission
-            statusMessage = "Listening…"
+            if statusMessage.hasPrefix("Error") {
+                statusMessage = "Listening…"
+            }
         } catch {
             statusMessage = "Error: \(error.localizedDescription)"
         }
-
-        isProcessingTier2 = false
     }
 }

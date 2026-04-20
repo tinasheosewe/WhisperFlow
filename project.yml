@@ -12,7 +12,9 @@ targets:
       - WhisperFlow
     settings:
       base:
-        INFOPLIST_FILE: WhisperFlow/Info.plist
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "WhisperFlow needs microphone access to listen to conversations and provide real-time conversational angles."
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "WhisperFlow uses on-device speech recognition to transcribe conversations in real time."
         PRODUCT_BUNDLE_IDENTIFIER: com.whisperflow.app
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -20,3 +22,16 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_STRICT_CONCURRENCY: targeted
         CODE_SIGN_STYLE: Automatic
+
+  WhisperFlowTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - WhisperFlowTests
+    dependencies:
+      - target: WhisperFlow
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: targeted
+        GENERATE_INFOPLIST_FILE: YES

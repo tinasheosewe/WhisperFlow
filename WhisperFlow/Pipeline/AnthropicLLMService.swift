@@ -1,21 +1,29 @@
 import Foundation
 
-actor AnthropicService {
+/// Anthropic Claude implementation of `LLMService`.
+/// Uses claude-haiku for the fast gate and claude-sonnet for angle generation.
+actor AnthropicLLMService: LLMService {
     private let apiKey: String
-    private let gateModel = "claude-haiku-4-5-20251001"
-    private let angleModel = "claude-sonnet-4-6"
-    private let baseURL = URL(string: "https://api.anthropic.com/v1/messages")!
+    private let gateModel: String
+    private let angleModel: String
+    private let baseURL: URL
+    private let session: URLSession
 
-    init(apiKey: String) {
+    init(
+        apiKey: String,
+        gateModel: String = "claude-haiku-4-5-20251001",
+        angleModel: String = "claude-sonnet-4-6",
+        baseURL: URL = URL(string: "https://api.anthropic.com/v1/messages")!,
+        session: URLSession = .shared
+    ) {
         self.apiKey = apiKey
+        self.gateModel = gateModel
+        self.angleModel = angleModel
+        self.baseURL = baseURL
+        self.session = session
     }
 
-    struct AngleResult: Sendable {
-        let topic: String
-        let angles: [String]
-    }
-
-    func tier2Gate(context: String) async throws -> Bool {
+    func evaluateGate(context: String) async throws -> Bool {
         let response = try await callAPI(
             model: gateModel,
             system: Prompts.tier2GateSystem,
@@ -34,7 +42,7 @@ actor AnthropicService {
         )
 
         guard let data = response.data(using: .utf8) else {
-            throw ServiceError.invalidResponse
+            throw LLMServiceError.invalidResponse
         }
 
         struct AngleJSON: Codable {
@@ -73,32 +81,19 @@ actor AnthropicService {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, httpResponse) = try await URLSession.shared.data(for: request)
+        let (data, httpResponse) = try await session.data(for: request)
 
         guard let http = httpResponse as? HTTPURLResponse, http.statusCode == 200 else {
-            let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw ServiceError.apiError(body)
+            let statusCode = (httpResponse as? HTTPURLResponse)?.statusCode ?? 0
+            let responseBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw LLMServiceError.apiError(statusCode: statusCode, body: responseBody)
         }
 
         let decoded = try JSONDecoder().decode(APIResponse.self, from: data)
         guard let text = decoded.content.first?.text else {
-            throw ServiceError.invalidResponse
+            throw LLMServiceError.invalidResponse
         }
 
         return text
-    }
-
-    enum ServiceError: LocalizedError {
-        case invalidResponse
-        case apiError(String)
-
-        var errorDescription: String? {
-            switch self {
-            case .invalidResponse:
-                return "Invalid API response"
-            case .apiError(let detail):
-                return "API error: \(detail)"
-            }
-        }
     }
 }

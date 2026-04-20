@@ -23,8 +23,14 @@ struct Word: Identifiable, Codable, Sendable {
 }
 
 struct ContextRing: Sendable {
-    let windowSize: TimeInterval = 20.0
+    let windowSize: TimeInterval
     private(set) var words: [Word] = []
+    /// Monotonically increasing count of all words ever added (unaffected by window trimming).
+    private(set) var totalWordsAdded: Int = 0
+
+    init(windowSize: TimeInterval = 20.0) {
+        self.windowSize = windowSize
+    }
 
     var text: String {
         words.map(\.text).joined(separator: " ")
@@ -40,6 +46,7 @@ struct ContextRing: Sendable {
 
     mutating func add(_ word: Word) {
         words.append(word)
+        totalWordsAdded += 1
         trim()
     }
 
@@ -55,6 +62,7 @@ struct ContextRing: Sendable {
 
     mutating func clear() {
         words.removeAll()
+        totalWordsAdded = 0
     }
 }
 
@@ -62,14 +70,15 @@ struct Emission: Identifiable, Sendable {
     let id: UUID
     let timestamp: TimeInterval
     let context: String
-    let topic: String
-    let angles: [String]
+    let result: AngleResult
 
-    init(timestamp: TimeInterval, context: String, topic: String, angles: [String]) {
+    var topic: String { result.topic }
+    var angles: [String] { result.angles }
+
+    init(timestamp: TimeInterval, context: String, result: AngleResult) {
         self.id = UUID()
         self.timestamp = timestamp
         self.context = context
-        self.topic = topic
-        self.angles = angles
+        self.result = result
     }
 }
